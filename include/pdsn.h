@@ -7,7 +7,8 @@ typedef enum {
     PDSN_ENOFMT = -1, // format not found
     PDSN_EFORMAT = -2, // formatting failed
     PDSN_EPARSE = -3, // parsing failed
-    PDSN_EGRPOOI = -4 // group out of index
+    PDSN_EGRPOOI = -4, // group out of index
+    PDSN_EOOI = -4, // pdsn_hack out of index
 } pdsn_error_t;
 
 /** Formats */

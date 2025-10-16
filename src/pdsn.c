@@ -3,36 +3,25 @@
 _Static_assert(sizeof(dsn_t) == sizeof(_dsn_t),
                "struct size mismatch between public and internal definitions");
 
-pdsn_match_t pdsn_matches[_PDSN_MEMBER_COUNT] = {
-    { GROUP_SCHEMA,     "schema"},
-    { GROUP_USERNAME,   "username"},
-    { GROUP_PASSWORD,   "password"},
-    { GROUP_HOSTNAME,   "hostname"},
-    { GROUP_PORT,       "port"},
-    { GROUP_PATH,       "path"},
-    { GROUP_QUERY,      "query"},
-};
-
 int parse_dsn(const char *input, dsn_t *dsn)
 {
     regmatch_t matches[20];
-    int ret = 0;
 
     // try all available regex, maybe I can 
-    ret = dsn_regex_find(input, matches, ARRAY_SIZE(matches));
-    if (ret != 0) {
+    pdsn_regex_t *pdsn_regex = dsn_regex_find(input, matches, ARRAY_SIZE(matches));
+    if (pdsn_regex == NULL) {
         return PDSN_EPARSE; // regex failed
     }
 
+    int ret = 0;
     for (int i = 0; i < _PDSN_MEMBER_COUNT; i++) {
 
         _dsn_t *_dsn = (_dsn_t*) dsn;
-        ret = dsn_fill_member(input, _dsn, i, matches, ARRAY_SIZE(matches));
+        ret = dsn_fill_member(input, _dsn, i, pdsn_regex, matches, ARRAY_SIZE(matches));
         if (ret) {
             errno = ret;
             return -1;
         }
-        
     }
 
     return 0;

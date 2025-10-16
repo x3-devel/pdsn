@@ -2,21 +2,19 @@
 
 #include <netdb.h>
 
-const char *regex_string_list[] = {
-    // first default dsn regex 
-    // "^([A-Za-z][A-Za-z0-9+.-]*)://" // schema()
-    // "(([^:@/[:space:]]+)(:([^@/[:space:]]*))?@)?" // username:password, username, password
-    // "(([A-Za-z0-9_.-]+)?(:([0-9]+))?)?" // hostname, port
-    // "(/([^[:space:]?#]*))?$", // path
-    "^([A-Za-z][A-Za-z0-9+.-]*)://"            // schema
+pdsn_regex_t pdsn_regex_list[] = {
+    {
+        "^([A-Za-z][A-Za-z0-9+.-]*)://" // schema
     "(([^:@/[:space:]]+)(:([^@/[:space:]]*))?@)?" // user:pass@
-    "([^:/[:space:]?#]+)"                      // host
-    "(:([0-9]+))?"                             // :port
-    "(/([^[:space:]?#]*))?"                    // /path
-    "(\\?([^#[:space:]]*))?$"                  // ?query
+    "([^:/[:space:]?#]+)" // host
+    "(:([0-9]+))?" // :port
+    "(/([^[:space:]?#]*))?" // /path
+    "(\\?([^#[:space:]]*))?$", // query 
+    {1, 3, 5, 6, 8, 10, 12,}
+    }
 };
 
-regex_t regex_list[ARRAY_SIZE(regex_string_list)];
+regex_t regex_list[ARRAY_SIZE(pdsn_regex_list)];
 
 /**
  * @brief Initializes all available regexes
@@ -26,8 +24,8 @@ __attribute__((constructor)) void compile_dsn_regex_list(void)
 {
     char errbuf[256];
 
-    for (int i = 0; (i < ARRAY_SIZE(regex_list) && i < ARRAY_SIZE(regex_string_list)); i++) {
-        int ret = regcomp(&regex_list[i], regex_string_list[i], REG_EXTENDED);
+    for (int i = 0; (i < ARRAY_SIZE(regex_list) && i < ARRAY_SIZE(pdsn_regex_list)); i++) {
+        int ret = regcomp(&regex_list[i], pdsn_regex_list[i].regstr, REG_EXTENDED);
         if (ret) {
             regerror(ret, &regex_list[i], errbuf, sizeof(errbuf));
             fprintf(stderr, "Regex compile failed: %s\n", errbuf);
@@ -42,22 +40,23 @@ __attribute__((constructor)) void compile_dsn_regex_list(void)
  */
 __attribute__((destructor)) void destroy_dsn_regex_list(void)
 {
-    for (int i = 0; (i < ARRAY_SIZE(regex_list) && i < ARRAY_SIZE(regex_string_list)); i++) {
+    for (int i = 0; (i < ARRAY_SIZE(regex_list) && i < ARRAY_SIZE(pdsn_regex_list)); i++) {
         regfree(&regex_list[i]);
     }
 }
 
-int dsn_regex_find(const char *input, regmatch_t *matches, int count)
+pdsn_regex_t* dsn_regex_find(const char *input, regmatch_t *matches, int nmatch)
 {
     char errbuf[256];
 
-    int ret = -1;
-    for (int i = 0; i < ARRAY_SIZE(regex_list) && (ret = regexec(&regex_list[i], input, count, matches, 0)); i++) {
+    int i = 0;
+    for (int ret = -1; i < ARRAY_SIZE(regex_list) && (ret = regexec(&regex_list[i], input, nmatch, matches, 0)); i++) {
         regerror(ret, &regex_list[i], errbuf, sizeof(errbuf));
         fprintf(stderr, "Regex exec failed: %s in %s:%d\n", errbuf, __FILE__, __LINE__);
+        return NULL;
     }
 
-    return ret;
+    return &pdsn_regex_list[i];
 }
 
 /**
@@ -68,16 +67,21 @@ int dsn_regex_find(const char *input, regmatch_t *matches, int count)
  * @param count 
  * @return 0 or ENOMEM
  */
-int dsn_fill_member(const char *in_dsn, _dsn_t *dsn, int idx, regmatch_t *matches, int count)
+int dsn_fill_member(const char *in_dsn, _dsn_t *dsn, int idx, pdsn_regex_t* pdsn_regex, regmatch_t *matches, int nmatch)
 {   
     char **dsn_hack=(char **)dsn;
-    int n = pdsn_matches[idx].group;
 
-    if (n >= count) {
+    if (idx > (_PDSN_MEMBER_COUNT - 1)) {
+        return PDSN_EOOI;
+    }
+
+    int n = pdsn_regex->groups[idx];    // grab match group index
+
+    if (n >= nmatch) {  // must not be ge nmatch (buffer overflow)
         return PDSN_EGRPOOI;
     }
 
-    if (matches[n].rm_so != -1) {
+    if (matches[n].rm_so != -1) { // match index was found
         int len = matches[n].rm_eo - matches[n].rm_so;
 
         char buf[1024];

@@ -29,23 +29,30 @@ typedef struct {
     char *query;
 } _dsn_t;
 
-
 typedef enum {
-    GROUP_SCHEMA    =  1,
-    GROUP_USERNAME  =  3,
-    GROUP_PASSWORD  =  5,
-    GROUP_HOSTNAME  =  6,
-    GROUP_PORT      =  8,
-    GROUP_PATH      = 10,
-    GROUP_QUERY     = 12,
+    GROUP_SCHEMA    = 0,
+    GROUP_USERNAME  = 1,
+    GROUP_PASSWORD  = 2,
+    GROUP_HOSTNAME  = 3,
+    GROUP_PORT      = 4,
+    GROUP_PATH      = 5,
+    GROUP_QUERY     = 6,
 } pdsn_regex_group_t;
+
+
+typedef struct {
+    const char *regstr;
+    int groups[7];
+} pdsn_regex_t;
+
 
 typedef struct {
     int group; // regex group
     const char *name; // entry name (schema, username, password, hostname, port, path)
 } pdsn_match_t;
 
-extern pdsn_match_t pdsn_matches[_PDSN_MEMBER_COUNT];
+// used in format
+extern const char *pdsn_matches[_PDSN_MEMBER_COUNT];
 
 /** Format - Definitions */
 
@@ -116,19 +123,32 @@ extern pdsn_format_t pdsn_format_list[];
  * @brief 
  * 
  * @param input 
- * @return int 
+ * @return pdsn_regex_t* pointer to matches pdsn_regex type 
  */
-int dsn_regex_find(const char *input, regmatch_t *matches, int count);
+pdsn_regex_t* dsn_regex_find(const char *input, regmatch_t *matches, int nmatch);
 
 /**
  * @brief Fills 
  * 
  * @param in_dsn input dsn string
  * @param dsn private dsn object
- * @param idx 
- * @param matches 
- * @param count 
- * @return int 
+ * @param idx dsn index (0 - 6)
+ * @param matches regex matches
+ * @param nmatch number of matches 
+ * @return int > 0 on success, < 0 on failure
  */
-int dsn_fill_member(const char *in_dsn, _dsn_t *dsn, int idx, regmatch_t *matches, int count);
+
+/**
+ * @brief Fills internal _dsn_t struct via casting
+ * 
+ * @param in_dsn input dsn string
+ * @param dsn private dsn object
+ * @param idx dsn index (0 - 6)
+ * @param pdsn_regex 
+ * @param matches regex matches
+ * @param nmatch number of matches 
+ * @return int > 0 on success, < 0 on failure
+ */
+int dsn_fill_member(const char *in_dsn, _dsn_t *dsn, int idx, pdsn_regex_t* pdsn_regex, regmatch_t *matches, int nmatch);
+
 #endif
