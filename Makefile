@@ -79,7 +79,7 @@ endif
 # create release of current git HEAD
 .PHONY: release
 release:
-	@echo -n "$(GIT_DESCRIBE)" > VERSION
+	@echo -n "$(GIT_TAG)" > VERSION
 	@mkdir -p ${RELEASE_DIR}
 
 # only generate release files if the do not exist
