@@ -13,6 +13,15 @@ pdsn_format_t pdsn_format_list[] = {
     {PDSN_FMT_TOML, "toml", NULL},
 };
 
+int pdsn_get_format(const char *format)
+{
+    int i = 0;
+    for(; i < ARRAY_SIZE(pdsn_format_list) && (0 != strcmp(format, pdsn_format_list[i].name)); i++)
+    ;
+
+        return pdsn_format_list[i].no;
+}
+
 const char *pdsn_matches[_PDSN_MEMBER_COUNT] = {
     "schema",
     "username",
