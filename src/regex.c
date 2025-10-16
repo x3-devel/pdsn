@@ -95,8 +95,8 @@ int dsn_fill_member(const char *in_dsn, _dsn_t *dsn, int idx, pdsn_regex_t* pdsn
     else {
         dsn_hack[idx] = NULL; // this is not an error
     }
-
-    if (n == GROUP_PORT && ! dsn->port) {
+    
+    if (n == pdsn_regex->groups[GROUP_PORT] && ! dsn->port) {
         struct servent *ent = getservbyname(dsn->schema, NULL);
 
         char buf[6];
