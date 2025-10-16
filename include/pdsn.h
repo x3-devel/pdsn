@@ -36,6 +36,14 @@ typedef struct {
 int parse_dsn(const char *input, dsn_t *dsn);
 
 /**
+ * @brief Convert output format name to idx
+ * 
+ * @param format output format name
+ * @return int 
+ */
+int pdsn_get_format(const char *format);
+
+/**
  * @brief Format DSN object
  * 
  * @param format format number (0(bash), 1(export), 2(json), 3(xml), 4(yaml), 5(toml))
